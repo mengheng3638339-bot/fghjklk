@@ -1,0 +1,367 @@
+    <!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ផលបូកវ៉ិចទ័រ</title>
+    <style>
+        body {
+            font-family: 'Khmer OS Siemreap', Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 { color: #2c3e50; margin-bottom: 15px; }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 1100px;
+            width: 100%;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 250px;
+        }
+        .controls label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .controls input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .setting-box {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .setting-box label {
+            font-size: 14px;
+            color: #334155;
+            line-height: 1.4;
+        }
+        .setting-box input[type="number"] {
+            padding: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 80px;
+            text-align: center;
+        }
+        canvas {
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            cursor: grab;
+            touch-action: none;
+        }
+        canvas:active { cursor: grabbing; }
+        .instructions {
+            font-size: 14px;
+            color: #334155;
+            background: #e2e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            line-height: 1.5;
+        }
+        .btn-snap {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Khmer OS Siemreap', Arial, sans-serif;
+            font-size: 15px;
+            font-weight: bold;
+            transition: 0.2s;
+            margin-top: 5px;
+        }
+        .btn-snap:hover { background-color: #2563eb; }
+    </style>
+</head>
+<body>
+
+  		  <h2>សូមធ្វើការផ្គុំវ៉ិចទ័រ ដែលវ៉ិចទ័រផ្គួបតំណាងអោយបន្ទាត់ដាច់ៗ</h2>
+    
+    <div class="container">
+        <div class="controls">
+            <div class="instructions">
+                💡 <b>របៀបប្រើ៖</b><br>
+                - ទាញ <b>កន្ទុយ</b> វ៉ិចទ័រ ដើម្បីផ្លាស់ទីតាំង<br>
+                - ទាញ <b>ក្បាលព្រួញ</b> ដើម្បីប្តូរទិសដៅ និងប្រវែង
+            </div>
+            
+            <div class="setting-box">
+                <label for="gridScale"><b>កំណត់ខ្នាតក្រឡា៖</b><br>១ ក្រឡា (50px) = យូនីត</label>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <input type="number" id="gridScale" value="10" min="1"> 
+                    <span style="font-size: 14px; font-weight: bold; color: #475569;">cm</span>
+                </div>
+            </div>
+
+            <label style="color: #ef4444;"><input type="checkbox" id="showA" checked> បង្ហាញវ៉ិចទ័រ A</label>
+            <label style="color: #10b981;"><input type="checkbox" id="showB" checked> បង្ហាញវ៉ិចទ័រ B</label>
+            <label style="color: #8b5cf6;"><input type="checkbox" id="showC"> បង្ហាញវ៉ិចទ័រ C</label>
+            <hr style="width: 100%; border: 1px solid #e2e8f0;">
+            <label style="color: #0f172a;"><input type="checkbox" id="showSum" checked> បង្ហាញវ៉ិចទ័រសរុប (Sum)</label>
+            
+            <button class="btn-snap" id="btnSnap">តម្រៀបក្បាល-ត-កន្ទុយ</button>
+        </div>
+
+        <canvas id="simCanvas" width="750" height="550"></canvas>
+    </div>
+
+    <script>
+        window.onload = function() {
+            const canvas = document.getElementById('simCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const chkA = document.getElementById('showA');
+            const chkB = document.getElementById('showB');
+            const chkC = document.getElementById('showC');
+            const chkSum = document.getElementById('showSum');
+            const btnSnap = document.getElementById('btnSnap');
+            const inputGridScale = document.getElementById('gridScale');
+
+            // Update canvas on check/uncheck or scale change
+            [chkA, chkB, chkC, chkSum, inputGridScale].forEach(el => {
+                if(el) el.addEventListener('change', draw);
+            });
+            
+            // Allow direct typing to update
+            inputGridScale.addEventListener('input', draw);
+
+            let dragging = false;
+            let dragTarget = null;
+            let offsetX = 0, offsetY = 0;
+
+            const originX = canvas.width / 2;
+            const originY = canvas.height / 2;
+            const gridPixelSize = 50; // 50px per visual grid square
+
+            // Initial Data
+            const vectors = {
+                A: { x: originX - 150, y: originY + 150, dx: 150, dy: -200, color: '#ef4444', label: 'A', id: 'showA' },
+                B: { x: originX, y: originY - 50, dx: 150, dy: 0, color: '#10b981', label: 'B', id: 'showB' },
+                C: { x: originX + 150, y: originY - 50, dx: -100, dy: 150, color: '#8b5cf6', label: 'C', id: 'showC' }
+            };
+
+            function drawGrid() {
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < canvas.width; i += gridPixelSize) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                }
+                for (let i = 0; i < canvas.height; i += gridPixelSize) {
+                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+                }
+            }
+
+            function drawVector(x1, y1, x2, y2, color, label, isSum = false) {
+                const headlen = 15;
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = isSum ? 4 : 3;
+                if (isSum) {
+                    ctx.setLineDash([8, 6]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+                
+                // Draw line
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Draw head
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(x2, y2);
+                ctx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), y2 - headlen * Math.sin(angle + Math.PI / 6));
+                ctx.fill();
+
+                // Calculate Magnitude based on grid scale
+                const unitPerGrid = parseFloat(inputGridScale.value) || 10;
+                const magPixels = Math.hypot(x2 - x1, y2 - y1);
+                const realMag = ((magPixels / gridPixelSize) * unitPerGrid).toFixed(1); // 1 decimal place
+
+                // FIX FOR OVERLAPPING TEXT: 
+                // Place the text at the midpoint of the vector, shifted perpendicularly
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
+                
+                const perpAngle = angle - Math.PI / 2;
+                let textOffsetX = Math.cos(perpAngle) * 22; // Offset from line
+                let textOffsetY = Math.sin(perpAngle) * 22;
+                
+                ctx.font = "bold 15px 'Khmer OS Siemreap', Arial";
+                const textStr = `${label} = ${realMag} cm`;
+                const textMetrics = ctx.measureText(textStr);
+                const textW = textMetrics.width;
+                const textH = 16;
+                
+                const finalX = midX + textOffsetX - textW/2;
+                const finalY = midY + textOffsetY + textH/3;
+
+                // Draw a subtle white background for the text to make it readable over the grid lines
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.fillRect(finalX - 4, finalY - 14, textW + 8, textH + 4);
+
+                // Write Text
+                ctx.fillStyle = color;
+                ctx.fillText(textStr, finalX, finalY);
+            }
+
+            function drawHandles(v) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                ctx.beginPath(); ctx.arc(v.x, v.y, 10, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(v.x + v.dx, v.y + v.dy, 12, 0, Math.PI*2); ctx.fill();
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawGrid();
+
+                let sumDx = 0;
+                let sumDy = 0;
+                let firstActiveVector = null;
+                let count = 0;
+
+                for (let key in vectors) {
+                    const v = vectors[key];
+                    const chk = document.getElementById(v.id);
+                    if (chk && chk.checked) {
+                        sumDx += v.dx;
+                        sumDy += v.dy;
+                        if (!firstActiveVector) firstActiveVector = v;
+                        count++;
+                        drawVector(v.x, v.y, v.x + v.dx, v.y + v.dy, v.color, v.label);
+                        drawHandles(v);
+                    }
+                }
+
+                if (chkSum && chkSum.checked && count > 0) {
+                    const startX = firstActiveVector.x;
+                    const startY = firstActiveVector.y;
+                    drawVector(startX, startY, startX + sumDx, startY + sumDy, '#0f172a', 'Sum', true);
+                }
+            }
+
+            function getMousePos(evt) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: evt.clientX - rect.left,
+                    y: evt.clientY - rect.top
+                };
+            }
+
+            canvas.addEventListener('mousedown', (e) => {
+                const pos = getMousePos(e);
+                for (let key in vectors) {
+                    const v = vectors[key];
+                    if (!document.getElementById(v.id).checked) continue;
+
+                    const headX = v.x + v.dx;
+                    const headY = v.y + v.dy;
+
+                    if (Math.hypot(pos.x - headX, pos.y - headY) < 15) {
+                        dragging = true;
+                        dragTarget = { vector: v, part: 'head' };
+                        return;
+                    }
+                    if (Math.hypot(pos.x - v.x, pos.y - v.y) < 15) {
+                        dragging = true;
+                        dragTarget = { vector: v, part: 'tail' };
+                        offsetX = pos.x - v.x;
+                        offsetY = pos.y - v.y;
+                        return;
+                    }
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!dragging || !dragTarget) return;
+                const pos = getMousePos(e);
+                const v = dragTarget.vector;
+
+                if (dragTarget.part === 'head') {
+                    v.dx = pos.x - v.x;
+                    v.dy = pos.y - v.y;
+                } else if (dragTarget.part === 'tail') {
+                    v.x = pos.x - offsetX;
+                    v.y = pos.y - offsetY;
+                }
+                draw();
+            });
+
+            const stopDrag = () => { dragging = false; dragTarget = null; };
+            canvas.addEventListener('mouseup', stopDrag);
+            canvas.addEventListener('mouseleave', stopDrag);
+
+            // Touch handling for mobile
+            canvas.addEventListener('touchstart', (e) => {
+                if(e.touches.length > 0) {
+                    const touch = e.touches[0];
+                    canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY }));
+                }
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                if (dragging) e.preventDefault();
+                if(e.touches.length > 0) {
+                    const touch = e.touches[0];
+                    canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY }));
+                }
+            }, { passive: false });
+            canvas.addEventListener('touchend', stopDrag);
+
+            btnSnap.addEventListener('click', () => {
+                let activeKeys = Object.keys(vectors).filter(k => document.getElementById(vectors[k].id).checked);
+                if (activeKeys.length < 2) return;
+
+                let prevV = vectors[activeKeys[0]];
+                
+                // Shift the starting point a bit so it centers better in the canvas
+                prevV.x = originX - 250;
+                prevV.y = originY + 200;
+
+                for (let i = 1; i < activeKeys.length; i++) {
+                    let currV = vectors[activeKeys[i]];
+                    currV.x = prevV.x + prevV.dx;
+                    currV.y = prevV.y + prevV.dy;
+                    prevV = currV;
+                }
+                draw();
+            });
+
+            draw();
+        };
+    </script>
+</body>
+</html>

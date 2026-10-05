@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ច្បាប់ចលនាញូតុន</title>
+    <style>
+        body { font-family: 'Khmer OS Siemreap', Arial, sans-serif; padding: 20px; background-color: #f4f7f6; }
+        h1 { text-align: center; color: #2c3e50; }
+        
+        .tab-container { display: flex; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn {
+            background-color: #ddd; color: #333; border: none; padding: 12px 24px; 
+            margin: 5px; cursor: pointer; font-size: 16px; border-radius: 5px 5px 0 0;
+            transition: 0.3s; font-family: inherit; font-weight: bold;
+        }
+        .tab-btn:hover { background-color: #bdc3c7; }
+        .tab-btn.active { background-color: #3498db; color: white; }
+
+        .tab-content {
+            display: none; background: white; padding: 20px; border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;
+        }
+        .tab-content.active { display: block; }
+        
+        canvas { border: 2px solid #7f8c8d; background-color: #ecf0f1; margin-top: 15px; border-radius: 5px; max-width: 100%; }
+        .controls { margin-top: 15px; padding: 15px; background: #e8f4f8; border-radius: 8px; text-align: left; display: inline-block; }
+        button.action-btn { background-color: #2ecc71; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-family: inherit; margin-top: 10px;}
+        button.reset-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-family: inherit; margin-top: 10px;}
+    </style>
+</head>
+<body>
+
+    <h1>កម្មវិធីពិសោធន៍ ច្បាប់ចលនាញូតុន</h1>
+
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="openTab(event, 'tab1')">១. ច្បាប់ទី១ & កកិត</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab2')">២. ច្បាប់ទី២ (F=ma)</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab3')">៣. ច្បាប់ទី៣</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab4')">៤. ប្លង់ទេរ</button>
+    </div>
+
+    <!-- Tab 1 -->
+    <div id="tab1" class="tab-content active">
+        <h3>ច្បាប់ទី១ញូតុន និង កម្លាំងកកិត (Inertia & Friction)</h3>
+        <canvas id="canvas1" width="700" height="200"></canvas><br>
+        <div class="controls">
+            <label>មេគុណកកិត (μ): <span id="mu_val">0</span> (ផ្ទៃរអិល)</label><br>
+            <input type="range" id="mu_slider" min="0" max="0.5" step="0.05" value="0" oninput="updateTab1()"><br>
+            <button class="action-btn" onclick="pushObject()">រុញប្រអប់ផ្តល់ល្បឿន</button>
+            <button class="reset-btn" onclick="resetTab1()">កំណត់ឡើងវិញ</button>
+        </div>
+    </div>
+
+    <!-- Tab 2 -->
+    <div id="tab2" class="tab-content">
+        <h3>ច្បាប់ទី២ញូតុន (F = ma)</h3>
+        <canvas id="canvas2" width="700" height="200"></canvas><br>
+        <div class="controls">
+            <label>ម៉ាស (m): <span id="m_val">10</span> kg</label><br>
+            <input type="range" id="m_slider" min="5" max="50" value="10" oninput="updateTab2()"><br>
+            <label>កម្លាំងទាញ (F): <span id="f_val">20</span> N</label><br>
+            <input type="range" id="f_slider" min="0" max="100" value="20" oninput="updateTab2()"><br>
+            <strong>សំទុះ (a) = <span id="a_val" style="color:red;">2.00</span> m/s²</strong><br>
+            <button class="action-btn" onclick="startTab2()">ចាប់ផ្តើម</button>
+            <button class="reset-btn" onclick="resetTab2()">កំណត់ឡើងវិញ</button>
+        </div>
+    </div>
+
+    <!-- Tab 3 -->
+    <div id="tab3" class="tab-content">
+        <h3>ច្បាប់ទី៣ញូតុន (សកម្មភាព និង ប្រតិកម្ម)</h3>
+        <canvas id="canvas3" width="700" height="200"></canvas><br>
+        <div class="controls">
+            <label>កម្លាំងទាញ (F): <span id="f3_val">50</span> N</label><br>
+            <input type="range" id="f3_slider" min="10" max="150" value="50" oninput="drawTab3()"><br>
+            <p><strong>F<sub>12</sub> = - F<sub>21</sub></strong></p>
+        </div>
+    </div>
+
+    <!-- Tab 4 -->
+    <div id="tab4" class="tab-content">
+        <h3>ការអនុវត្តច្បាប់ញូតុន លើប្លង់ទេរ</h3>
+        <canvas id="canvas4" width="700" height="300"></canvas><br>
+        <div class="controls">
+            <label>មុំប្លង់ទេរ (θ): <span id="angle_val">30</span>°</label><br>
+            <input type="range" id="angle_slider" min="0" max="60" value="30" oninput="updateTab4()"><br>
+            <button class="action-btn" onclick="startTab4()">អិលចុះ</button>
+            <button class="reset-btn" onclick="resetTab4()">កំណត់ឡើងវិញ</button>
+        </div>
+    </div>
+
+    <script>
+        function drawArrow(ctx, fromx, fromy, tox, toy, color) {
+            let headlen = 12; 
+            let dx = tox - fromx;
+            let dy = toy - fromy;
+            let angle = Math.atan2(dy, dx);
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(fromx, fromy);
+            ctx.lineTo(tox, toy);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(tox, toy);
+            ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function openTab(evt, tabName) {
+            let i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // Tab 1 Logic
+        let c1 = document.getElementById('canvas1').getContext('2d');
+        let obj1 = { x: 50, v: 0, mu: 0 };
+        let anim1;
+        function updateTab1() {
+            obj1.mu = parseFloat(document.getElementById('mu_slider').value);
+            document.getElementById('mu_val').innerText = obj1.mu == 0 ? "0 (គ្មានកកិត)" : obj1.mu;
+            if(obj1.v === 0) draw1();
+        }
+        function pushObject() {
+            if(obj1.v === 0) { obj1.v = 5; loopTab1(); }
+        }
+        function resetTab1() {
+            cancelAnimationFrame(anim1);
+            obj1.x = 50; obj1.v = 0;
+            draw1();
+        }
+        function draw1() {
+            c1.clearRect(0,0,700,200);
+            c1.fillStyle = '#95a5a6'; c1.fillRect(0, 150, 700, 50); 
+            c1.fillStyle = '#e67e22'; c1.fillRect(obj1.x, 100, 50, 50); 
+            
+            if(obj1.v > 0) {
+                drawArrow(c1, obj1.x + 50, 125, obj1.x + 90, 125, '#2ecc71');
+                c1.fillStyle = '#2ecc71'; c1.font = "16px Arial"; c1.fillText("v", obj1.x + 95, 120);
+                
+                if(obj1.mu > 0) {
+                    let fLen = obj1.mu * 120; 
+                    drawArrow(c1, obj1.x, 140, obj1.x - fLen, 140, 'red');
+                    c1.fillStyle = 'red'; c1.fillText("f", obj1.x - fLen - 15, 145);
+                }
+            }
+        }
+        function loopTab1() {
+            if(obj1.v > 0) {
+                let a = obj1.mu * 0.5; 
+                obj1.v -= a;
+                if(obj1.v < 0) obj1.v = 0;
+                obj1.x += obj1.v;
+            }
+            if(obj1.x > 650) obj1.x = 0;
+            draw1();
+            if(obj1.v > 0) anim1 = requestAnimationFrame(loopTab1);
+        }
+        draw1();
+
+        // Tab 2 Logic
+        let c2 = document.getElementById('canvas2').getContext('2d');
+        let obj2 = { x: 50, v: 0, m: 10, F: 20, running: false };
+        let anim2;
+        function updateTab2() {
+            obj2.m = document.getElementById('m_slider').value;
+            obj2.F = document.getElementById('f_slider').value;
+            document.getElementById('m_val').innerText = obj2.m;
+            document.getElementById('f_val').innerText = obj2.F;
+            document.getElementById('a_val').innerText = (obj2.F / obj2.m).toFixed(2);
+            if(!obj2.running) draw2();
+        }
+        function startTab2() { if(!obj2.running) { obj2.running = true; loopTab2(); } }
+        function resetTab2() { obj2.running = false; obj2.x = 50; obj2.v = 0; cancelAnimationFrame(anim2); draw2(); }
+        function draw2() {
+            c2.clearRect(0,0,700,200);
+            c2.fillStyle = '#95a5a6'; c2.fillRect(0, 150, 700, 50);
+            c2.fillStyle = '#3498db'; c2.fillRect(obj2.x, 100, 50, 50);
+            c2.fillStyle = 'white'; c2.font = "14px Arial"; c2.fillText(obj2.m + "kg", obj2.x + 10, 130);
+            
+            if(obj2.F > 0) {
+                drawArrow(c2, obj2.x + 50, 125, obj2.x + 50 + Number(obj2.F)*1.5, 125, 'blue');
+                c2.fillStyle = 'blue'; c2.fillText("F = " + obj2.F + "N", obj2.x + 60, 115);
+            }
+        }
+        function loopTab2() {
+            if(obj2.running) {
+                let a = obj2.F / obj2.m;
+                obj2.v += (a * 0.05);
+                obj2.x += obj2.v;
+                if(obj2.x > 650) obj2.running = false;
+            }
+            draw2();
+            if(obj2.running) anim2 = requestAnimationFrame(loopTab2);
+        }
+        draw2();
+
+        // Tab 3 Logic
+        let c3 = document.getElementById('canvas3').getContext('2d');
+        function drawTab3() {
+            let f = document.getElementById('f3_slider').value;
+            document.getElementById('f3_val').innerText = f;
+            c3.clearRect(0,0,700,200);
+            
+            c3.fillStyle = '#8e44ad'; c3.fillRect(250, 80, 60, 60); 
+            c3.fillStyle = '#d35400'; c3.fillRect(390, 80, 60, 60); 
+            c3.fillStyle = 'white'; c3.font = "16px Arial"; 
+            c3.fillText("A", 275, 115); c3.fillText("B", 415, 115);
+            
+            c3.strokeStyle = 'black'; c3.lineWidth = 2;
+            c3.beginPath(); c3.moveTo(310, 110); c3.lineTo(390, 110); c3.stroke();
+
+            let vLen = parseFloat(f) * 0.8;
+            drawArrow(c3, 310, 90, 310 + vLen, 90, 'red');
+            c3.fillStyle = 'red'; c3.fillText("F12 = " + f + "N", 310 + 5, 80);
+            
+            drawArrow(c3, 390, 130, 390 - vLen, 130, 'blue');
+            c3.fillStyle = 'blue'; c3.fillText("F21 = -" + f + "N", 390 - vLen, 150);
+        }
+        drawTab3();
+
+        // Tab 4 Logic (បន្ថែមវ៉ិចទ័រ Py និងបន្ទាត់ដាច់ៗ)
+        let c4 = document.getElementById('canvas4').getContext('2d');
+        let obj4 = { pos: 0, v: 0, running: false };
+        let anim4;
+
+        function updateTab4() {
+            if(!obj4.running) drawTab4();
+        }
+        function startTab4() {
+            if(!obj4.running) { obj4.running = true; loopTab4(); }
+        }
+        function resetTab4() {
+            obj4.running = false; obj4.pos = 0; obj4.v = 0;
+            cancelAnimationFrame(anim4);
+            drawTab4();
+        }
+
+        function drawTab4() {
+            let angleDeg = document.getElementById('angle_slider').value;
+            document.getElementById('angle_val').innerText = angleDeg;
+            let angleRad = angleDeg * Math.PI / 180;
+            
+            c4.clearRect(0,0,700,300);
+            c4.save();
+            
+            c4.translate(120, 250); 
+            let H = 420 * Math.tan(angleRad);
+            let W = 420;
+            
+            // គូរប្លង់ទេរ
+            c4.beginPath(); 
+            c4.moveTo(0, -H);
+            c4.lineTo(0, 0); 
+            c4.lineTo(W, 0); 
+            c4.closePath();
+            c4.fillStyle = '#ecf0f1'; c4.fill(); c4.stroke();
+            
+            c4.fillStyle = 'black'; c4.font = "14px Arial";
+            c4.fillText("θ = " + angleDeg + "°", W - 50, -10);
+
+            c4.translate(0, -H); 
+            c4.rotate(angleRad); 
+            
+            let startPos = 40; 
+            let currentX = startPos + obj4.pos;
+            c4.translate(currentX, 0); 
+            
+            // គូរប្រអប់
+            c4.fillStyle = '#d35400'; 
+            c4.fillRect(0, -50, 50, 50);
+            
+            // --- ចាប់ផ្តើមគូរវ៉ិចទ័រទាំងអស់ចេញពីផ្ចិតប្រអប់ ---
+            c4.translate(25, -25); // ផ្លាស់ទីគោលអ័ក្សមកចំកណ្តាលប្រអប់
+            
+            let pLen = 120; // ប្រវែងវ៉ិចទ័រទម្ងន់សរុប P
+            let pxLen = pLen * Math.sin(angleRad);
+            let pyLen = pLen * Math.cos(angleRad);
+
+            // ១. កម្លាំងប្រតិកម្ម N (កែងប្លង់ ឡើងលើ) ស្មើនឹង Py
+            drawArrow(c4, 0, 0, 0, -pyLen, '#8e44ad');
+            c4.fillStyle = '#8e44ad'; c4.fillText("N", 10, -pyLen + 10);
+            
+            // ២. វ៉ិចទ័រ Px (ស្របប្លង់ ចុះក្រោម)
+            if (angleDeg > 0) {
+                drawArrow(c4, 0, 0, pxLen, 0, 'red');
+                c4.fillStyle = 'red'; c4.fillText("Px", pxLen + 5, -10);
+            }
+
+            // ៣. វ៉ិចទ័រ Py (កែងប្លង់ ចុះក្រោម)
+            if (angleDeg > 0) {
+                drawArrow(c4, 0, 0, 0, pyLen, 'red');
+                c4.fillStyle = 'red'; c4.fillText("Py", -25, pyLen - 5);
+            }
+
+            // ៤. បន្ទាត់ដាច់ៗ (Dashed Lines) បង្ហាញការបំបែកវ៉ិចទ័រ Px និង Py
+            if (angleDeg > 0) {
+                c4.strokeStyle = 'red';
+                c4.lineWidth = 1.5;
+                c4.setLineDash([5, 5]); // កំណត់ឱ្យទៅជាបន្ទាត់ដាច់ៗ
+
+                // ភ្ជាប់ពីចុង Px ទៅចុង P
+                c4.beginPath();
+                c4.moveTo(pxLen, 0);
+                c4.lineTo(pxLen, pyLen);
+                c4.stroke();
+
+                // ភ្ជាប់ពីចុង Py ទៅចុង P
+                c4.beginPath();
+                c4.moveTo(0, pyLen);
+                c4.lineTo(pxLen, pyLen);
+                c4.stroke();
+
+                c4.setLineDash([]); // លុបបន្ទាត់ដាច់ៗចេញវិញ
+            }
+
+            // ៥. វ៉ិចទ័រទម្ងន់ P = mg (បញ្ឈរចុះក្រោមជានិច្ច)
+            // ទីតាំងចុងរបស់ P គឺចំនុច (pxLen, pyLen) ក្នុងប្រព័ន្ធកូអរដោណេប្លង់ទេរ
+            drawArrow(c4, 0, 0, pxLen, pyLen, 'green');
+            c4.fillStyle = 'green'; c4.fillText("P = mg", pxLen + 5, pyLen + 15);
+            
+            c4.restore();
+        }
+
+        function loopTab4() {
+            if (obj4.running) {
+                let angleDeg = document.getElementById('angle_slider').value;
+                let angleRad = angleDeg * Math.PI / 180;
+                let g = 9.8; 
+                let a = g * Math.sin(angleRad); 
+                
+                obj4.v += (a * 0.05); 
+                obj4.pos += obj4.v;
+                
+                let maxPos = 420 / Math.cos(angleRad) - 90; 
+                if (obj4.pos > maxPos) {
+                    obj4.running = false;
+                }
+            }
+            drawTab4();
+            if (obj4.running) anim4 = requestAnimationFrame(loopTab4);
+        }
+        drawTab4();
+    </script>
+</body>
+</html>

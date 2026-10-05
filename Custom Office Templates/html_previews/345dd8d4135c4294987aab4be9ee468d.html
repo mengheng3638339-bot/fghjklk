@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation ពន្យល់ និងលំហាត់អនុវត្ត៖ ល្បឿនខណៈ</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Kantumruy Pro', 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Slide Container */
+        .video-container {
+            width: 100%;
+            max-width: 850px;
+            background: #1e293b;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 2px solid #334155;
+            margin-bottom: 40px;
+        }
+
+        .screen {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            background: #090d16;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .scene { display: none; width: 100%; height: 100%; position: absolute; padding: 20px; box-sizing: border-box; text-align: center; }
+        .scene.active { display: flex; flex-direction: column; justify-content: center; align-items: center; animation: fadeIn 0.4s ease-in-out; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Road & Track Setup */
+        .road { width: 100%; height: 90px; background: #334155; position: absolute; bottom: 40px; border-top: 4px solid #64748b; border-bottom: 4px solid #64748b; }
+        .dashed-line { width: 100%; height: 0px; border-top: 3px dashed #94a3b8; position: absolute; top: 50%; }
+        
+        /* Motorbike */
+        .bike {
+            font-size: 55px;
+            position: absolute;
+            bottom: 50px;
+            left: 20px;
+            transform: scaleX(-1);
+            z-index: 10;
+        }
+
+        /* Location Markers (A, B, C) */
+        .marker {
+            position: absolute;
+            bottom: 130px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .marker-pin {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+        }
+        .marker-line { width: 2px; height: 90px; background: rgba(239, 68, 68, 0.5); border-style: dashed; }
+        
+        /* Radar Camera at B */
+        .radar-box {
+            position: absolute;
+            bottom: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fbbf24;
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 13px;
+            display: none;
+            box-shadow: 0 0 15px #fbbf24;
+            z-index: 20;
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.1); } }
+
+        /* Speedometer UI */
+        .dashboard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 15px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid #38bdf8;
+            backdrop-filter: blur(5px);
+        }
+        .speedometer { text-align: center; }
+        .speed-val { font-size: 32px; font-weight: bold; color: #38bdf8; }
+        .speed-unit { font-size: 11px; color: #94a3b8; }
+
+        /* Canvas for Graph */
+        canvas { background: #1e293b; border-radius: 8px; border: 1px solid #475569; }
+
+        /* Subtitle Styling */
+        .subtitle-box {
+            height: 85px;
+            background: #0f172a;
+            padding: 15px 25px;
+            border-top: 2px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .subtitle-text { font-size: 17px; color: #f1f5f9; font-weight: 500; line-height: 1.5; }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: #1e293b;
+        }
+        .btn {
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:hover { background: #0369a1; }
+        .btn:disabled { background: #475569; cursor: not-allowed; }
+        .progress-bar { width: 35%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+        .progress-fill { width: 25%; height: 100%; background: #38bdf8; transition: width 0.3s; }
+        
+        .badge { background: #ef4444; color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 10px; }
+
+        /* Worksheet Exercises Section */
+        .exercises-container {
+            width: 100%;
+            max-width: 850px;
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 30px;
+            border: 2px solid #334155;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .ex-header {
+            color: #38bdf8;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 10px;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ex-card {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 5px solid #0284c7;
+        }
+
+        .ex-title {
+            color: #facc15;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .ex-question {
+            color: #cbd5e1;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .toggle-btn {
+            background: #334155;
+            color: #38bdf8;
+            border: 1px solid #0284c7;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 13px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .toggle-btn:hover { background: #0284c7; color: white; }
+
+        .solution {
+            display: none;
+            background: #162438;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px dashed #38bdf8;
+            color: #e2e8f0;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+    </style>
+</head>
+<body>
+
+<h2 style="color: #38bdf8; margin-bottom: 15px;">🎬 Animation និង លំហាត់អនុវត្ត៖ ល្បឿនខណៈ & បន្ទាត់ប៉ះ</h2>
+
+<!-- Slide Screen Area -->
+<div class="video-container">
+    <div class="screen">
+        
+        <!-- Scene 1: Main Bike Motion -->
+        <div class="scene active" id="scene1">
+            <div class="dashboard">
+                <div class="speedometer">
+                    <div class="speed-val" id="speedVal">20</div>
+                    <div class="speed-unit">KM/H (ល្បឿនខណៈ)</div>
+                </div>
+                <div style="border-left: 1px solid #334155; padding-left: 15px; text-align: left;">
+                    <div style="font-size: 12px; color: #94a3b8;">ទីតាំងបច្ចុប្បន្ន:</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #facc15;" id="locationVal">ចំណុច A (t = 0s)</div>
+                </div>
+            </div>
+
+            <div class="radar-box" id="radarBox">
+                📸 ចាប់បានល្បឿនខណៈត្រង់ចំណុច B ៖ 65 km/h!
+            </div>
+
+            <div class="marker" style="left: 60px;">
+                <div class="marker-pin">A</div>
+                <div class="marker-line"></div>
+            </div>
+            <div class="marker" style="left: 50%;">
+                <div class="marker-pin" style="background: #facc15; color: #000;">B</div>
+                <div class="marker-line" style="border-color: #facc15;"></div>
+            </div>
+            <div class="marker" style="right: 60px;">
+                <div class="marker-pin">C</div>
+                <div class="marker-line"></div>
+            </div>
+
+            <div class="road"><div class="dashed-line"></div></div>
+            <div class="bike" id="bike">🛵</div>
+        </div>
+
+        <!-- Scene 2: Concept Comparison -->
+        <div class="scene" id="scene2">
+            <div class="badge" style="background: #3b82f6;">ឈុតទី ២៖ ការប្រៀបធៀប</div>
+            <div style="display: flex; gap: 20px; text-align: left;">
+                <div style="background: #0f172a; padding: 18px; border-radius: 12px; border: 2px solid #eab308; width: 240px;">
+                    <h4 style="color: #eab308; margin: 0 0 10px 0;">១. ល្បឿនមធ្យម (v<sub>av</sub>)</h4>
+                    <p style="font-size: 13px; color: #cbd5e1;">គិតល្បឿនជាមធ្យម ពីចំណុច A ទៅ C (ចម្ងាយសរុប ÷ រយៈពេលសរុប)។</p>
+                    <div style="font-size: 18px; font-weight: bold; color: #eab308;">v<sub>av</sub> = Δx / Δt</div>
+                </div>
+                <div style="background: #0f172a; padding: 18px; border-radius: 12px; border: 2px solid #22c55e; width: 240px;">
+                    <h4 style="color: #22c55e; margin: 0 0 10px 0;">២. ល្បឿនខណៈ (v)</h4>
+                    <p style="font-size: 13px; color: #cbd5e1;">ជាល្បឿនចំ **ត្រង់ចំណុច B តែមួយគត់** នៅខណៈពេល t = 2s!</p>
+                    <div style="font-size: 18px; font-weight: bold; color: #22c55e;">v<sub>B</sub> = 65 km/h</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 3: Tangent Graph -->
+        <div class="scene" id="scene3">
+            <div class="badge" style="background: #a855f7;">ឈុតទី ៣៖ ក្រាហ្វទីតាំង និងបន្ទាត់ប៉ះខ្សែកោងត្រង់ចំណុច B</div>
+            <canvas id="graphCanvas" width="480" height="230"></canvas>
+        </div>
+
+        <!-- Scene 4: Final Summary -->
+        <div class="scene" id="scene4">
+            <div class="badge" style="background: #22c55e;">ឈុតទី ៤៖ សន្និដ្ឋាន</div>
+            <div style="background: #0f172a; padding: 25px; border-radius: 12px; border: 1px solid #334155; text-align: left; max-width: 500px;">
+                <h3 style="color: #38bdf8; margin-top: 0;">💡 សង្ខេបចំណុចសំខាន់៖</h3>
+                <p style="font-size: 16px; margin: 10px 0;">• **ល្បឿនខណៈ** គឺជាល្បឿនរបស់អង្គធាតុនៅខណៈពេលជាក់លាក់មួយ (ឧទាហរណ៍៖ ត្រង់ចំណុច B មានល្បឿន 65 km/h)។</p>
+                <p style="font-size: 16px; margin: 10px 0;">• វាស្មើនឹងដេរីវេនៃអនុគមន៍ទីតាំង <b>v(t) = dx/dt</b> ឬជាមេគុណប្រាប់ទិសនៃខ្សែប៉ះត្រង់ចំណុចនោះ។</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Subtitle Area -->
+    <div class="subtitle-box">
+        <div class="subtitle-text" id="subtitleText">សូមចុច "▶ Play Animation" ដើម្បីមើល...</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="btn" id="prevBtn" onclick="changeScene(-1)" disabled>⏮ ថយក្រោយ</button>
+        <button class="btn" id="playBtn" onclick="togglePlay()" style="background: #22c55e;">▶ Play Animation</button>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <button class="btn" id="nextBtn" onclick="changeScene(1)">បន្ទាប់ ⏭</button>
+    </div>
+</div>
+
+<!-- Exercises Section Below -->
+<div class="exercises-container">
+    <h2 class="ex-header">📝 លំហាត់អនុវត្តន៍ (Worksheet)</h2>
+
+    <!-- Exercise 1 -->
+    <div class="ex-card">
+        <div class="ex-title">លំហាត់ទី ១ (កម្រិតមូលដ្ឋាន៖ គណនាទីតាំង និងល្បឿនមធ្យម)</div>
+        <div class="ex-question">
+            ម៉ូតូមួយផ្លាស់ទីតាមខ្សែកោង ដែលមានសមីការទីតាំងធៀបនឹងពេលវេលា៖ <br>
+            <b style="color: #38bdf8;">x(t) = 5t² + 10t + 20</b> (គិតជា meters និង t គិតជា seconds)<br><br>
+            <b>ក.</b> គណនាទីតាំងរបស់ម៉ូតូនៅខណៈ t<sub>1</sub> = 0 s (ចំណុច A) និង t<sub>2</sub> = 2 s (ចំណុច B)។<br>
+            <b>ខ.</b> គណនាល្បឿនមធ្យមរបស់ម៉ូតូ ក្នុងចន្លោះពេលពី t = 0 s ទៅ t = 2 s។
+        </div>
+        <button class="toggle-btn" onclick="toggleSolution('sol1', this)">👇 មើលដំណោះស្រាយ</button>
+        <div class="solution" id="sol1">
+            <b style="color: #22c55e;">🔑 ដំណោះស្រាយ៖</b><br>
+            <b>ក. គណនាទីតាំង៖</b><br>
+            • ត្រង់ t<sub>1</sub> = 0 s ៖ x(0) = 5(0)² + 10(0) + 20 = <b>20 m</b><br>
+            • ត្រង់ t<sub>2</sub> = 2 s ៖ x(2) = 5(2)² + 10(2) + 20 = 20 + 20 + 20 = <b>60 m</b><br><br>
+            <b>ខ. គណនាល្បឿនមធ្យម (v<sub>av</sub>)៖</b><br>
+            v<sub>av</sub> = Δx / Δt = (x(2) - x(0)) / (2 - 0) = (60 - 20) / 2 = 40 / 2 = <b>20 m/s</b>
+        </div>
+    </div>
+
+    <!-- Exercise 2 -->
+    <div class="ex-card" style="border-left-color: #facc15;">
+        <div class="ex-title">លំហាត់ទី ២ (កម្រិតមធ្យម៖ គណនាល្បឿនខណៈ និងប្រៀបធៀប)</div>
+        <div class="ex-question">
+            ដោយប្រើប្រាស់សមីការទីតាំងដដែល <b style="color: #facc15;">x(t) = 5t² + 10t + 20</b> ៖<br><br>
+            <b>ក.</b> រកកន្សោមល្បឿនខណៈ v(t) របស់ម៉ូតូតាមរយៈដេរីវេនៃទីតាំង v(t) = x'(t)។<br>
+            <b>ខ.</b> គណនាល្បឿនខណៈត្រង់ចំណុច B (នៅខណៈពេល t = 2 s) រួចបំបែកតម្លៃនេះជា km/h។<br>
+            <b>គ.</b> ធ្វើការប្រៀបធៀបតម្លៃល្បឿនមធ្យម (រកបានក្នុងលំហាត់ទី១) និងល្បឿនខណៈត្រង់ចំណុច B។
+        </div>
+        <button class="toggle-btn" onclick="toggleSolution('sol2', this)">👇 មើលដំណោះស្រាយ</button>
+        <div class="solution" id="sol2">
+            <b style="color: #22c55e;">🔑 ដំណោះស្រាយ៖</b><br>
+            <b>ក. រកកន្សោមល្បឿនខណៈ v(t)៖</b><br>
+            v(t) = x'(t) = d/dt (5t² + 10t + 20) = <b>10t + 10 (m/s)</b><br><br>
+            <b>ខ. ល្បឿនខណៈត្រង់ចំណុច B (t = 2 s)៖</b><br>
+            v(2) = 10(2) + 10 = <b>30 m/s</b><br>
+            • បំបែកជា km/h ៖ 30 × 3.6 = <b>108 km/h</b><br><br>
+            <b>គ. ការប្រៀបធៀប៖</b><br>
+            • ល្បឿនមធ្យម v<sub>av</sub> = 20 m/s (ជាល្បឿនមធ្យមសរុបក្នុងចន្លោះ 0s ទៅ 2s)។<br>
+            • ល្បឿនខណៈ v<sub>B</sub> = 30 m/s (ជាល្បឿនពិតប្រាកដចំខណៈ t = 2s)។ តម្លៃទាំងពីរនេះមិនស្មើគ្នាទេ ព្រោះម៉ូតូមានចលនាស្ទុះ (ល្បឿនកើនឡើងរហូត)។
+        </div>
+    </div>
+
+    <!-- Exercise 3 -->
+    <div class="ex-card" style="border-left-color: #a855f7;">
+        <div class="ex-title">លំហាត់ទី ៣ (កម្រិតអនុវត្ត៖ រកមេគុណប្រាប់ទិស និងពេលវេលា)</div>
+        <div class="ex-question">
+            ម៉ូតូផ្លាស់ទីលើផ្លូវត្រង់មួយដោយសមីការទីតាំង <b style="color: #a855f7;">x(t) = 2t³ - 3t² + 40</b> (m និង s)។<br><br>
+            <b>ក.</b> គណនាមេគុណប្រាប់ទិស (Slope) នៃបន្ទាត់ប៉ះទៅនឹងខ្សែកោងទីតាំង x(t) នៅខណៈពេល t = 3 s។ តើមេគុណប្រាប់ទិសនេះតំណាងឱ្យអ្វី?<br>
+            <b>ខ.</b> តើនៅខណៈពេល t ប៉ុន្មាន ទើបម៉ូតូមានល្បឿនខណៈស្មើនឹង 36 m/s?
+        </div>
+        <button class="toggle-btn" onclick="toggleSolution('sol3', this)">👇 មើលដំណោះស្រាយ</button>
+        <div class="solution" id="sol3">
+            <b style="color: #22c55e;">🔑 ដំណោះស្រាយ៖</b><br>
+            <b>ក. មេគុណប្រាប់ទិសនៃបន្ទាត់ប៉ះត្រង់ t = 3 s៖</b><br>
+            • កន្សោមល្បឿនខណៈ (មេគុណប្រាប់ទិស) ៖ k = x'(t) = <b>6t² - 6t</b><br>
+            • ត្រង់ t = 3 s ៖ k = 6(3)² - 6(3) = 54 - 18 = <b>36</b><br>
+            <b>សន្និដ្ឋាន៖</b> មេគុណប្រាប់ទិសនេះតំណាងឱ្យ <b>ល្បឿនខណៈ</b> របស់ម៉ូតូនៅខណៈពេល t = 3 s ដែលស្មើនឹង 36 m/s។<br><br>
+            <b>ខ. រកខណៈពេល t ពេលល្បឿនខណៈ v = 36 m/s៖</b><br>
+            6t² - 6t = 36  ➔  6t² - 6t - 36 = 0  ➔  t² - t - 6 = 0<br>
+            (t - 3)(t + 2) = 0  ➔  <b>t = 3 s</b> (ជ្រើសយក t > 0)<br>
+            <b>ដូចនេះ៖</b> នៅខណៈពេល t = 3 s ម៉ូតូមានល្បឿនខណៈស្មើនឹង 36 m/s។
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentScene = 1;
+    const totalScenes = 4;
+    let isPlaying = false;
+    let animInterval = null;
+    let bikeAnimId = null;
+
+    const subtitles = [
+        "ម៉ូតូជិះពី A ទៅ C... ពេលដល់ចំណុច B ល្បឿនខណៈគឺ 65 km/h!",
+        "ល្បឿនមធ្យម គណនាពី A ទៅ C... ប៉ុន្តែល្បឿនខណៈ គឺគិតតែត្រង់ចំណុច B មួយភ្លែតប៉ុណ្ណោះ!",
+        "បន្ទាត់ប៉ះ (ពណ៌លឿង) ឥឡូវនេះស្ថិតនៅពីក្រោមទ្រខ្សែកោងពណ៌ខៀវ និងប៉ះចំត្រង់ចំណុច B យ៉ាងត្រឹមត្រូវ!",
+        "សរុបមក៖ ល្បឿនខណៈ គឺជាតម្លៃល្បឿនពិតប្រាកដដែលវាស់បាននៅខណៈពេល ឬទីតាំងជាក់លាក់ណាមួយ!"
+    ];
+
+    function updateScene() {
+        document.querySelectorAll('.scene').forEach((el, index) => {
+            el.classList.toggle('active', index + 1 === currentScene);
+        });
+
+        document.getElementById('subtitleText').innerText = subtitles[currentScene - 1];
+        document.getElementById('progressFill').style.width = (currentScene / totalScenes * 100) + '%';
+
+        document.getElementById('prevBtn').disabled = currentScene === 1;
+        document.getElementById('nextBtn').disabled = currentScene === totalScenes;
+
+        if (currentScene === 1) startBikeAnim();
+        else cancelAnimationFrame(bikeAnimId);
+
+        if (currentScene === 3) drawPerfectTangentGraph();
+    }
+
+    function changeScene(direction) {
+        currentScene += direction;
+        if (currentScene < 1) currentScene = 1;
+        if (currentScene > totalScenes) currentScene = totalScenes;
+        updateScene();
+    }
+
+    function togglePlay() {
+        isPlaying = !isPlaying;
+        const btn = document.getElementById('playBtn');
+        if (isPlaying) {
+            btn.innerText = "⏸ Pause";
+            btn.style.background = "#eab308";
+            animInterval = setInterval(() => {
+                if (currentScene < totalScenes) {
+                    changeScene(1);
+                } else {
+                    currentScene = 1;
+                    updateScene();
+                }
+            }, 7000);
+        } else {
+            btn.innerText = "▶ Play Animation";
+            btn.style.background = "#22c55e";
+            clearInterval(animInterval);
+        }
+    }
+
+    // Bike Motion Logic
+    function startBikeAnim() {
+        const bike = document.getElementById('bike');
+        const speedVal = document.getElementById('speedVal');
+        const locationVal = document.getElementById('locationVal');
+        const radarBox = document.getElementById('radarBox');
+        
+        let pos = 20;
+        const screenWidth = document.querySelector('.screen').clientWidth;
+        const pointB = screenWidth / 2 - 30;
+
+        function animate() {
+            if (currentScene !== 1) return;
+
+            let currentSpeed = 20;
+            if (pos < pointB) {
+                currentSpeed = 20 + ((pos - 20) / (pointB - 20)) * 45;
+                locationVal.innerText = (pos < 100) ? "ចំណុច A (t = 0s)" : "ចន្លោះ A ទៅ B (កំពុងកើនល្បឿន)";
+                locationVal.style.color = "#38bdf8";
+                radarBox.style.display = 'none';
+            } else if (Math.abs(pos - pointB) <= 20) {
+                currentSpeed = 65;
+                locationVal.innerText = "🎯 ដល់ចំណុច B (t = 2s)";
+                locationVal.style.color = "#facc15";
+                radarBox.style.display = 'block';
+            } else {
+                currentSpeed = 65 - ((pos - pointB) / (screenWidth - pointB)) * 35;
+                locationVal.innerText = "ចន្លោះ B ទៅ C (កំពុងបន្ថយល្បឿន)";
+                locationVal.style.color = "#38bdf8";
+            }
+
+            let step = currentSpeed * 0.055; 
+            pos += step;
+            
+            if (pos > screenWidth - 70) {
+                pos = 20;
+                radarBox.style.display = 'none';
+            }
+
+            bike.style.left = pos + 'px';
+            speedVal.innerText = Math.round(currentSpeed);
+
+            bikeAnimId = requestAnimationFrame(animate);
+        }
+
+        cancelAnimationFrame(bikeAnimId);
+        animate();
+    }
+
+    // Mathematical Precise Tangent Graph Drawing
+    function drawPerfectTangentGraph() {
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. Draw Axes
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(50, 20); ctx.lineTo(50, 190); ctx.lineTo(440, 190);
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '12px Kantumruy Pro';
+        ctx.fillText('ទីតាំង x (m)', 55, 30);
+        ctx.fillText('ពេលវេលា t (s)', 370, 182);
+
+        // Curve Parameters
+        const tB = 230;
+        const a_param = 0.00085;
+        const yB = 160 - a_param * Math.pow(tB - 50, 1.9); 
+        const slope = -0.00085 * 1.9 * Math.pow(tB - 50, 0.9);
+
+        // 2. Position Curve x(t) - Cyan
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        for (let x = 60; x <= 420; x++) {
+            let y = 160 - a_param * Math.pow(x - 50, 1.9);
+            if (x === 60) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // 3. Tangent Line - Yellow
+        const lineLength = 130;
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(tB - lineLength, yB - slope * lineLength);
+        ctx.lineTo(tB + lineLength, yB + slope * lineLength);
+        ctx.stroke();
+
+        // 4. Projection Dashed Lines
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+
+        ctx.beginPath();
+        ctx.moveTo(tB, yB);
+        ctx.lineTo(tB, 190);
+        ctx.stroke();
+
+        const tB2 = tB + 65;
+        const yB2 = yB + slope * 65;
+        ctx.beginPath();
+        ctx.moveTo(tB2, yB2);
+        ctx.lineTo(tB2, 190);
+        ctx.stroke();
+
+        ctx.setLineDash([]); // Reset dash
+
+        // 5. Point B Dot
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.arc(tB, yB, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Labels
+        ctx.fillStyle = '#facc15';
+        ctx.font = 'bold 13px Kantumruy Pro';
+        ctx.fillText('ចំណុច B (t = 2s)', tB - 45, yB - 15);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'bold 13px Kantumruy Pro';
+        ctx.fillText('ខ្សែប៉ះ ត្រង់ B  ➔  ល្បឿនខណៈ v = 65 km/h', tB - 20, yB + 35);
+    }
+
+    // Toggle Solution Visibility
+    function toggleSolution(id, btn) {
+        const sol = document.getElementById(id);
+        if (sol.style.display === "block") {
+            sol.style.display = "none";
+            btn.innerText = "👇 មើលដំណោះស្រាយ";
+        } else {
+            sol.style.display = "block";
+            btn.innerText = "👆 លើកលាក់ដំណោះស្រាយ";
+        }
+    }
+
+    // Initialize
+    updateScene();
+</script>
+
+</body>
+</html>
